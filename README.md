@@ -41,16 +41,13 @@ Or adjust the path in the script.
 
 ## Usage
 
-1. Edit the script to set your input/output paths:
-   ```python
-   INPUT_VIDEO = "/path/to/your/dashcam-video.mp4"
-   OUTPUT_VIDEO = "/path/to/output-overlay.mp4"
-   ```
+```bash
+# Output defaults to <input>-overlay.mp4
+python overlay_dashcam.py /path/to/dashcam-video.mp4
 
-2. Run:
-   ```bash
-   python overlay_dashcam.py
-   ```
+# Specify a custom output path
+python overlay_dashcam.py /path/to/dashcam-video.mp4 -o /path/to/output.mp4
+```
 
 ## How it works
 
