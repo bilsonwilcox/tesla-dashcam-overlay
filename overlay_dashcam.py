@@ -6,6 +6,8 @@ Dual-pipe pipeline: ffmpeg decodes -> Python composites overlay -> ffmpeg encode
 Single pass, one frame in memory at a time.
 """
 
+import argparse
+import os
 import subprocess
 import sys
 from collections import deque
@@ -18,10 +20,6 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/tmp/tesla-dashcam")
 import sei_extractor
 import dashcam_pb2
-
-# --- Configuration ---
-INPUT_VIDEO = "/Users/williamkstone/claude/2026-01-31_10-31-39-front.mp4"
-OUTPUT_VIDEO = "/Users/williamkstone/claude/2026-01-31_10-31-39-front-overlay.mp4"
 
 VIDEO_WIDTH = 2896
 VIDEO_HEIGHT = 1876
@@ -338,9 +336,28 @@ def alpha_composite_overlay(frame: np.ndarray, overlay: np.ndarray) -> np.ndarra
     return result
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Tesla Dashcam Telemetry Overlay")
+    parser.add_argument("input", help="Input dashcam video file")
+    parser.add_argument(
+        "-o", "--output",
+        help="Output video file (default: <input>-overlay.<ext>)",
+    )
+    return parser.parse_args()
+
+
+def default_output_path(input_path: str) -> str:
+    root, ext = os.path.splitext(input_path)
+    return f"{root}-overlay{ext}"
+
+
 def main():
+    args = parse_args()
+    input_video = args.input
+    output_video = args.output or default_output_path(input_video)
+
     print("Extracting SEI metadata...")
-    metadata = extract_all_sei_metadata(INPUT_VIDEO)
+    metadata = extract_all_sei_metadata(input_video)
     print(f"Found {len(metadata)} SEI frames")
 
     if len(metadata) == 0:
@@ -357,7 +374,7 @@ def main():
     print("Starting ffmpeg decoder...")
     decoder = subprocess.Popen(
         [
-            "ffmpeg", "-i", INPUT_VIDEO,
+            "ffmpeg", "-i", input_video,
             "-f", "rawvideo", "-pix_fmt", "rgb24",
             "-"
         ],
@@ -378,7 +395,7 @@ def main():
             "-crf", "18",
             "-preset", "medium",
             "-pix_fmt", "yuv420p",
-            OUTPUT_VIDEO
+            output_video
         ],
         stdin=subprocess.PIPE,
         stderr=subprocess.DEVNULL
@@ -442,7 +459,7 @@ def main():
         encoder.wait()
 
     print(f"Done! Processed {frame_idx} frames")
-    print(f"Output: {OUTPUT_VIDEO}")
+    print(f"Output: {output_video}")
 
 
 if __name__ == "__main__":
